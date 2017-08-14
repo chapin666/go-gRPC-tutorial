@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/api/annotations.proto";
+
+service HelloHttp {
+    rpc SayHello(HelloHttpRequest) returns (HelloHttpReply) {
+        option (google.api.http) = {
+            post: "/example/echo"
+            body: "*"
+        };
+    }
+}
+
+message HelloHttpRequest {
+    string name = 1;
+}
+
+message HelloHttpReply {
+    string message = 1;
+}

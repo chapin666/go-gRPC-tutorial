@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package proto;
+
+service Hello {
+    rpc SayHello(HelloRequest) returns (HelloReply){}
+}
+
+// HelloRequest 请求结构
+message HelloRequest {
+    string name = 1;
+}
+
+// HelloReply 响应结构
+message HelloReply {
+    string messsage = 1;
+}
