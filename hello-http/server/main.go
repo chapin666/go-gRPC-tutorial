@@ -1,15 +1,17 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
+	"strings"
 
 	pb "github.com/chapin/go-rpc-tutorial/hello-http/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
@@ -20,6 +22,22 @@ type helloHttpService struct{}
 
 // HelloHttpService ...
 var HelloHttpService = helloHttpService{}
+
+func (h helloHttpService) SayHello(ctx context.Context, in *pb.HelloHttpRequest) (*pb.HelloHttpReply, error) {
+	resp := new(pb.HelloHttpReply)
+	resp.Message = "Hello " + in.Name + "."
+	return resp, nil
+}
+
+func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			otherHandler.ServeHTTP(w, r)
+		}
+	})
+}
 
 func main() {
 	endpoint := "127.0.0.1:50052"
@@ -49,7 +67,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/".gwmux)
+	mux.Handle("/", gwmux)
 
 	if err != nil {
 		panic(err)
@@ -65,11 +83,11 @@ func main() {
 	demoKeyPair = &pair
 
 	srv := &http.Server{
-		Address: endpoint,
+		Addr:    endpoint,
 		Handler: grpcHandlerFunc(grpcServer, mux),
 		TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{*demoKeyPair},
-		}
+		},
 	}
 
 	fmt.Printf("grpc and https on port: %d\n", 50052)
